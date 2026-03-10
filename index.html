@@ -670,6 +670,11 @@
                 <input type="text" id="show-name" value="Sister Act">
             </div>
 
+                <div class="settings-group">
+                    <label>Area / Side Name</label>
+                    <input type="text" id="area-name" value="Stage Right">
+                </div>
+
             <div class="settings-group">
                 <label>Intermission Duration (minutes)</label>
                 <input type="number" id="intermission-duration" value="15">
@@ -756,6 +761,7 @@
         let intermissionSeconds = 0;
         let currentSceneOverride = null; // Manual override for scene tracking
         let performanceMode = 'live'; // 'live' or 'rehearsal'
+        let areaName = 'Stage Right'; // editable area/side text
         let activeSceneNumber = 1;
         let sceneContextData = {};
 
@@ -1098,6 +1104,7 @@
             const showName = document.getElementById('show-name').value;
             const statusMode = document.getElementById('status-mode').value;
             const currentSceneNum = parseInt(document.getElementById('current-scene').value);
+            const area = document.getElementById('area-name').value || 'Stage Right';
             const timerSize = document.getElementById('timer-size').value;
             const intermissionDuration = document.getElementById('intermission-duration').value;
 
@@ -1106,12 +1113,14 @@
             
             // Save performance mode
             performanceMode = statusMode;
+            areaName = area;
             
             // Save to localStorage
             const settings = {
                 showName: showName,
                 statusMode: statusMode,
                 currentScene: currentSceneNum,
+                areaName: area,
                 timerSize: timerSize,
                 intermissionDuration: intermissionDuration,
                 sceneContextData: sceneContextData
@@ -1119,7 +1128,8 @@
             localStorage.setItem('backstageSettings', JSON.stringify(settings));
             
             document.querySelector('h1').textContent = `🎭 ${showName.toUpperCase()} - BACKSTAGE - STAGE RIGHT`;
-            document.title = `${showName} - Backstage - Stage Right`;
+            document.querySelector('h1').textContent = `🎭 ${showName.toUpperCase()} - BACKSTAGE - ${areaName.toUpperCase()}`;
+            document.title = `${showName} - Backstage - ${areaName}`;
             
             // Update status based on mode (only if timer not running)
             if (!timerInterval) {
@@ -1276,6 +1286,15 @@
                 if (settings.intermissionDuration) {
                     document.getElementById('intermission-duration').value = settings.intermissionDuration;
                 }
+
+                // Apply area/side name
+                if (settings.areaName) {
+                    areaName = settings.areaName;
+                    const showNameVal = settings.showName || document.getElementById('show-name').value;
+                    document.getElementById('area-name').value = settings.areaName;
+                    document.querySelector('h1').textContent = `🎭 ${showNameVal.toUpperCase()} - BACKSTAGE - ${areaName.toUpperCase()}`;
+                    document.title = `${showNameVal} - Backstage - ${areaName}`;
+                }
                 
                 // Apply scene-specific cast/notes
                 if (settings.sceneContextData) {
@@ -1286,6 +1305,9 @@
                 sceneContextData = JSON.parse(JSON.stringify(librettoScenePresets));
                 statusLight.className = 'status-indicator standby';
                 showStateText.textContent = 'STANDBY';
+                // Ensure area-name input shows default
+                const areaInput = document.getElementById('area-name');
+                if (areaInput) areaInput.value = areaName;
             }
 
             populateSceneContextSelector();
