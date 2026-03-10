@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sister Act - Backstage - Stage Right</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #f0f0f0;
+            font-family: 'Courier New', monospace;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 15px;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            border-bottom: 3px solid #ff6b35;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            color: #ff6b35;
+            font-size: 1.8em;
+            letter-spacing: 3px;
+        }
+
+        .show-status {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .status-text {
+            font-size: 1.5em;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .status-indicator {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .status-indicator.live {
+            background: #ff0000;
+            box-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000;
+        }
+
+        .status-indicator.standby {
+            background: #ffa500;
+            box-shadow: 0 0 30px #ffa500, 0 0 60px #ffa500;
+        }
+
+        .status-indicator.rehearsal {
+            background: #00aaff;
+            box-shadow: 0 0 30px #00aaff, 0 0 60px #00aaff;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+
+        .scrollable-content {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        .scrollable-content .main-grid {
+            margin-bottom: 0;
+        }
+
+        .panel {
+            background: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 5px;
+            padding: 15px;
+        }
+
+        .panel h2 {
+            color: #ff6b35;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            border-bottom: 1px solid #444;
+            padding-bottom: 8px;
+        }
+
+        .timer {
+            font-size: 4.5em;
+            text-align: center;
+            color: #00ff88;
+            font-weight: bold;
+            text-shadow: 0 0 20px #00ff88;
+            padding: 40px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .timer.intermission {
+            color: #ffa500;
+            text-shadow: 0 0 20px #ffa500;
+        }
+
+        .dual-timer-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .paused-timer {
+            font-size: 2em;
+            text-align: center;
+            color: #00ff88;
+            font-weight: bold;
+            text-shadow: 0 0 10px #00ff88;
+            opacity: 0.4;
+            font-family: 'Courier New', monospace;
+        }
+
+        .paused-timer::before {
+            content: 'PAUSED: ';
+            font-size: 0.5em;
+            color: #666;
+        }
+
+        .intermission-timer {
+            font-size: 4em;
+            text-align: center;
+            color: #ffa500;
+            font-weight: bold;
+            text-shadow: 0 0 20px #ffa500;
+            font-family: 'Courier New', monospace;
+        }
+
+        .intermission-timer::after {
+            content: 'INTERMISSION';
+            display: block;
+            font-size: 0.3em;
+            color: #ffa500;
+            margin-top: 10px;
+            letter-spacing: 3px;
+        }
+
+        .warning-box {
+            background: #ff0000;
+            color: #fff;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.8em;
+            font-weight: bold;
+            margin: 10px 0;
+            border: 3px solid #fff;
+            animation: blink 1.5s infinite;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            flex-shrink: 0;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0.7; }
+        }
+
+        .scene-list {
+            list-style: none;
+        }
+
+        .scene-item {
+            padding: 12px;
+            margin: 8px 0;
+            background: #2a2a2a;
+            border-left: 4px solid #555;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .scene-item.current {
+            background: #1a3a1a;
+            border-left-color: #00ff88;
+            font-weight: bold;
+            display: flex;
+            font-size: 1.2em;
+        }
+
+        .scene-item.upcoming {
+            background: #2a2a2a;
+            border-left-color: #ffa500;
+            font-weight: bold;
+            display: flex;
+            font-size: 1.1em;
+        }
+
+        .scene-item.preview {
+            background: #1a1a1a;
+            border-left-color: #555;
+            display: flex;
+            font-size: 0.75em;
+            opacity: 0.6;
+        }
+
+        .scene-item.completed {
+            opacity: 0.5;
+            text-decoration: line-through;
+            display: none;
+        }
+
+        .scene-number {
+            color: #ff6b35;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .quick-cues {
+            list-style: none;
+        }
+
+        .cue-item {
+            background: #2a2a2a;
+            padding: 10px;
+            margin: 8px 0;
+            border-left: 3px solid #ff6b35;
+        }
+
+        .cue-time {
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .editable-note {
+            background: #2a2a2a;
+            color: #f0f0f0;
+            border: 1px solid #444;
+            padding: 8px;
+            margin: 5px 0;
+            width: 100%;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        #add-note-btn {
+            margin-top: 10px;
+        }
+
+        .notes-section {
+            background: #1a1a1a;
+            border: 2px solid #ffa500;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .notes-section h3 {
+            color: #ffa500;
+            margin-bottom: 10px;
+        }
+
+        .notes-list {
+            list-style: none;
+        }
+
+        .notes-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .notes-list li:before {
+            content: "⚠ ";
+            color: #ffa500;
+        }
+
+        .controls {
+            display: none;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: #333;
+            color: #fff;
+            border: 2px solid #555;
+            padding: 12px 24px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #444;
+            border-color: #ff6b35;
+        }
+
+        .btn.primary {
+            background: #ff6b35;
+            border-color: #ff6b35;
+        }
+
+        .btn.primary:hover {
+            background: #ff8555;
+        }
+
+        .btn.danger {
+            background: #cc0000;
+            border-color: #cc0000;
+        }
+
+        .btn.danger:hover {
+            background: #ff0000;
+        }
+
+        /* Settings Menu */
+        .settings-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .settings-overlay.active {
+            display: flex;
+        }
+
+        .settings-panel {
+            background: #1a1a1a;
+            border: 3px solid #ff6b35;
+            padding: 40px;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .settings-panel h2 {
+            color: #ff6b35;
+            margin-bottom: 20px;
+        }
+
+        .settings-group {
+            margin: 20px 0;
+        }
+
+        .settings-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #00ff88;
+        }
+
+        .settings-group input,
+        .settings-group select {
+            width: 100%;
+            padding: 10px;
+            background: #2a2a2a;
+            border: 2px solid #444;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            font-size: 1em;
+        }
+
+        /* Progress indicator for 'j' press */
+        .progress-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1a1a1a;
+            border: 2px solid #ff6b35;
+            padding: 10px 20px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .progress-indicator.active {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 150px;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #ff6b35;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 10px;
+            color: #666;
+            border-top: 1px solid #333;
+            flex-shrink: 0;
+        }
+
+        .cast-on-stage {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .cast-badge {
+            background: #2a2a2a;
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 2px solid #00ff88;
+            font-size: 0.9em;
+        }
+
+        .emergency-info {
+            background: #330000;
+            border: 2px solid #ff0000;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .emergency-info h3 {
+            color: #ff0000;
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+
+        .emergency-info p {
+            margin: 5px 0;
+            font-size: 0.95em;
+        }
+
+        .emergency-info .staff-title {
+            color: #ff6b35;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎭 SISTER ACT - BACKSTAGE - STAGE RIGHT</h1>
+            <div class="show-status">
+                <span class="status-text" id="show-state-text">STANDBY</span>
+                <div class="status-indicator standby" id="status-light"></div>
+            </div>
+        </header>
+
+        <div class="warning-box">
+            🔇 SILENCE BACKSTAGE 🔇
+        </div>
+
+        <div class="main-grid" style="flex-shrink: 0;">
+            <div class="panel">
+                <h2>⏱ SHOW TIMER</h2>
+                <div id="timer-container">
+                    <div class="timer" id="timer">00:00:00</div>
+                </div>
+                <div class="controls">
+                    <button class="btn primary" id="start-btn">START SHOW [1]</button>
+                    <button class="btn" id="pause-btn">PAUSE [1]</button>
+                    <button class="btn" id="intermission-btn">START INTERMISSION [2]</button>
+                    <button class="btn danger" id="reset-btn">RESET [3]</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>📋 TONIGHT'S NOTES</h2>
+                <ul class="notes-list" id="notes-list">
+                    <li>Fog machine ready for Act 2 opening</li>
+                    <li>Check wireless mics before "Take Me To Heaven"</li>
+                    <li>Habit quick-change set upstage left</li>
+                    <li>Props table organized by scene</li>
+                    <li>Keep stage left wing clear for ensemble entrance</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="scrollable-content">
+        <div class="main-grid">
+            <div class="panel">
+                <h2>🎬 SCENE TRACKER</h2>
+                <ul class="scene-list">
+                    <li class="scene-item" data-scene="1">
+                        <span><span class="scene-number">I.1</span> A Disco - Take Me To Heaven (Nightclub)</span>
+                        <span>12 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="2">
+                        <span><span class="scene-number">I.2</span> An Alley - Ernie Is Killed</span>
+                        <span>4 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="3">
+                        <span><span class="scene-number">I.3</span> The Chase</span>
+                        <span>2 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="4">
+                        <span><span class="scene-number">I.4</span> Police Station</span>
+                        <span>5 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="5">
+                        <span><span class="scene-number">I.5</span> Queen of Angels Cathedral (The Narthex)</span>
+                        <span>8 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="6">
+                        <span><span class="scene-number">I.6</span> The Dining Hall</span>
+                        <span>10 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="7">
+                        <span><span class="scene-number">I.7</span> The Chapel</span>
+                        <span>4 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="8">
+                        <span><span class="scene-number">I.8</span> Police Station (Curtis on Bail)</span>
+                        <span>3 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="9">
+                        <span><span class="scene-number">I.9</span> The Street - When I Find My Baby</span>
+                        <span>6 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="10">
+                        <span><span class="scene-number">I.10</span> Inside the Bar</span>
+                        <span>7 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="11">
+                        <span><span class="scene-number">I.11</span> Street Outside the Bar</span>
+                        <span>4 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="12">
+                        <span><span class="scene-number">I.12</span> A Hallway</span>
+                        <span>3 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="13">
+                        <span><span class="scene-number">I.13</span> The Music Room - Raise Your Voice</span>
+                        <span>10 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="14">
+                        <span><span class="scene-number">I.14</span> In the Church - Act 1 Finale</span>
+                        <span>7 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="15">
+                        <span><span class="scene-number">---</span> INTERMISSION</span>
+                        <span>15 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="16">
+                        <span><span class="scene-number">II.1</span> A Confessional</span>
+                        <span>6 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="17">
+                        <span><span class="scene-number">II.2</span> The Church - Sunday Morning Fever</span>
+                        <span>8 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="18">
+                        <span><span class="scene-number">II.3</span> Curtis's Office</span>
+                        <span>6 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="19">
+                        <span><span class="scene-number">II.4</span> Mother Superior's Office</span>
+                        <span>5 min</span>
+                    </li>
+
+                    <li class="scene-item" data-scene="20">
+                        <span><span class="scene-number">II.5</span> Mary Clarence's Room</span>
+                        <span>6 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="21">
+                        <span><span class="scene-number">II.6</span> Changing Room</span>
+                        <span>6 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="22">
+                        <span><span class="scene-number">II.7</span> Eddie's Apartment</span>
+                        <span>9 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="23">
+                        <span><span class="scene-number">II.8</span> Outside Queen of Angels</span>
+                        <span>3 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="24">
+                        <span><span class="scene-number">II.9</span> Queen of Angels</span>
+                        <span>7 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="25">
+                        <span><span class="scene-number">II.10</span> The Chase (All Over Queen of Angels)</span>
+                        <span>5 min</span>
+                    </li>
+                    <li class="scene-item" data-scene="26">
+                        <span><span class="scene-number">II.11</span> Sunday Papal Mass and Finale</span>
+                        <span>10 min</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="panel">
+                <h2>👥 ON STAGE NOW</h2>
+                <div class="cast-on-stage" id="cast-on-stage">
+                    <span class="cast-badge">Deloris</span>
+                    <span class="cast-badge">Mother Superior</span>
+                    <span class="cast-badge">Sister Mary Robert</span>
+                    <span class="cast-badge">Sister Mary Patrick</span>
+                    <span class="cast-badge">Sister Mary Lazarus</span>
+                </div>
+
+                <div class="emergency-info">
+                    <h3>🚨 EMERGENCY BACKSTAGE CONTACTS (IN PRIORITY)</h3>
+                    <p class="staff-title">CONTACT STAFF FIRST</p>
+                    <p><strong>Then, Felix Moore</strong></p>
+                    <p><strong>And... Jacob Navaratne</strong></p>
+                    <p>And only then... the Rest of crew</p>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <div class="footer">
+            <p>Sister Act © Performance Rights</p>
+            <p>Break a leg! 🎭</p>
+        </div>
+    </div>
+
+    <!-- Progress Indicator for 'j' key -->
+    <div class="progress-indicator" id="progress-indicator">
+        <div>Access Code...</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+    </div>
+
+    <!-- Settings Overlay -->
+    <div class="settings-overlay" id="settings-overlay">
+        <div class="settings-panel">
+            <h2>⚙ SETTINGS</h2>
+            
+            <div class="settings-group">
+                <label>Show Name</label>
+                <input type="text" id="show-name" value="Sister Act">
+            </div>
+
+            <div class="settings-group">
+                <label>Intermission Duration (minutes)</label>
+                <input type="number" id="intermission-duration" value="15">
+            </div>
+
+            <div class="settings-group">
+                <label>Type of Performance</label>
+                <select id="status-mode">
+                    <option value="rehearsal">Rehearsal</option>
+                    <option value="live">Live Show</option>
+                </select>
+            </div>
+
+            <div class="settings-group">
+                <label>Override Current Scene</label>
+                <select id="current-scene">
+                    <option value="1">I.1 - A Disco (Take Me To Heaven)</option>
+                    <option value="2">I.2 - An Alley</option>
+                    <option value="3">I.3 - The Chase</option>
+                    <option value="4">I.4 - Police Station</option>
+                    <option value="5">I.5 - Queen of Angels Cathedral (The Narthex)</option>
+                    <option value="6">I.6 - The Dining Hall</option>
+                    <option value="7">I.7 - The Chapel</option>
+                    <option value="8">I.8 - Police Station (Curtis on Bail)</option>
+                    <option value="9">I.9 - The Street (When I Find My Baby)</option>
+                    <option value="10">I.10 - Inside the Bar</option>
+                    <option value="11">I.11 - Street Outside the Bar</option>
+                    <option value="12">I.12 - A Hallway</option>
+                    <option value="13">I.13 - The Music Room (Raise Your Voice)</option>
+                    <option value="14">I.14 - In the Church (Act 1 Finale)</option>
+                    <option value="15">INTERMISSION</option>
+                    <option value="16">II.1 - A Confessional</option>
+                    <option value="17">II.2 - The Church (Sunday Morning Fever)</option>
+                    <option value="18">II.3 - Curtis's Office</option>
+                    <option value="19">II.4 - Mother Superior's Office</option>
+                    <option value="20">II.5 - Mary Clarence's Room</option>
+                    <option value="21">II.6 - Changing Room</option>
+                    <option value="22">II.7 - Eddie's Apartment</option>
+                    <option value="23">II.8 - Outside Queen of Angels</option>
+                    <option value="24">II.9 - Queen of Angels</option>
+                    <option value="25">II.10 - The Chase</option>
+                    <option value="26">II.11 - Sunday Papal Mass and Finale</option>
+                </select>
+            </div>
+
+            <div class="settings-group">
+                <label>Timer Font Size</label>
+                <select id="timer-size">
+                    <option value="3em">Small</option>
+                    <option value="4.5em" selected>Medium</option>
+                    <option value="6em">Large</option>
+                </select>
+            </div>
+
+            <div class="settings-group">
+                <label>Edit Scene Context</label>
+                <select id="scene-context-scene"></select>
+            </div>
+
+            <div class="settings-group">
+                <label>Who Is On Stage (one per line)</label>
+                <textarea id="scene-cast-editor" rows="5" style="width: 100%; background: #2a2a2a; border: 2px solid #444; color: #fff; font-family: 'Courier New', monospace; padding: 10px;"></textarea>
+            </div>
+
+            <div class="settings-group">
+                <label>Scene Notes (one per line)</label>
+                <textarea id="scene-notes-editor" rows="8" style="width: 100%; background: #2a2a2a; border: 2px solid #444; color: #fff; font-family: 'Courier New', monospace; padding: 10px;"></textarea>
+            </div>
+
+            <div class="controls">
+                <button class="btn primary" id="save-settings">SAVE & CLOSE</button>
+                <button class="btn" id="close-settings">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Timer functionality
+        let timerInterval = null;
+        let seconds = 0;
+        let isIntermission = false;
+        let pausedShowTime = 0;
+        let previousShowState = 'live'; // Track whether we were in live or rehearsal before intermission
+        let intermissionSeconds = 0;
+        let currentSceneOverride = null; // Manual override for scene tracking
+        let performanceMode = 'live'; // 'live' or 'rehearsal'
+        let activeSceneNumber = 1;
+        let sceneContextData = {};
+
+        const sceneOrder = Array.from(document.querySelectorAll('.scene-item')).map((item) => parseInt(item.dataset.scene, 10));
+        const librettoScenePresets = {
+            1: { cast: ['Deloris', 'Michelle', 'Tina', 'Curtis', 'Joey', 'TJ', 'Pablo', 'Ernie', 'Bartender'], notes: ['Open on nightclub audition look; make sure chairs are pre-set on tables before house opens.', 'Deloris vocal starts immediately; confirm lead handheld and both backup lines are hot at preset.', 'Curtis and gang reveal must read clearly upstage; keep sidelight warm for the pivot from fantasy to reality.', 'Blue fur gift box is a critical hand-prop; pre-set in Ernie position before scene begins.'] },
+            2: { cast: ['Curtis', 'Joey', 'TJ', 'Pablo', 'Ernie', 'Deloris'], notes: ['Alley look with hard edge light; keep practical shadows so the gun reveal is visible but stylized.', 'Ernie blood/SFX moment should be checked pre-show with fight captain and wardrobe cover.', 'Deloris entrance path must stay clear from stage right to avoid collision with the fall position.', 'Trigger chase handoff cue immediately after Deloris exits; no dead air between scenes 2 and 3.'] },
+            3: { cast: ['Deloris', 'Joey', 'TJ', 'Pablo', 'Ensemble'], notes: ['This is a transit chase beat; prioritize pace over scenic detail.', 'Deloris carries purse and blue fur; ensure both transfer through safely and visibly.', 'Route chase lanes are opposite-direction traffic, so deck crew should hold all wing crossovers.', 'Standby for fast cut into police station practicals.'] },
+            4: { cast: ['Deloris', 'Eddie', 'Cop', 'Hookers'], notes: ['Desk and station furniture must be locked before Deloris entrance.', 'Eddie and Deloris recognition scene needs a clean acoustic pocket; reduce backstage movement noise.', 'Photo evidence prop should be preset on Eddie desk corner for handoff timing.', 'Exit includes move into convent transition; keep blue fur tracked to station chair for later callback.'] },
+            5: { cast: ['Mother Superior', 'Monsignor O\'Hara', 'Deloris', 'Eddie', 'Nuns'], notes: ['Narthex bells and incense cues establish location; align audio and haze before nun entrance.', 'Mother Superior/Monsignor dialogue drives exposition; keep choir underscoring soft and intelligible.', 'Convent doorway traffic is dense in this scene; stage-left marshal should call clear lanes.', 'Habit handoff to Deloris is mandatory prop check at places for scene 5.'] },
+            6: { cast: ['Deloris', 'Mother Superior', 'Sister Mary Robert', 'Sister Mary Patrick', 'Sister Mary Lazarus', 'Sister Mary Martin-of-Tours', 'Sister Mary Theresa', 'Nuns'], notes: ['Dining hall table layout must preserve sightlines for comedy exchanges across both sides.', 'Food props (mutton service) are repeatedly referenced; replace/reset before every run.', 'Large ensemble lyric section needs tight spacing to keep Deloris center-featured.', 'End of scene should clear quickly for chapel setup; crew pre-position upstage during final refrain.'] },
+            7: { cast: ['Deloris', 'Mother Superior', 'Sister Mary Robert', 'Sister Mary Patrick'], notes: ['Chapel tone shifts from comedic to reflective; reduce ambient level and isolate front wash.', 'Bread/wine requests are played in stillness, so hold backstage chatter and movement.', 'Mary Patrick sneaking/eavesdrop blocking must stay visible from both sides of house.', 'Transition out is to police station, so remove chapel-specific hand props on blackout.'] },
+            8: { cast: ['Curtis', 'Joey', 'TJ', 'Pablo', 'Eddie', 'Cop'], notes: ['Police station return with blue fur callback prop on chair; do not miss this visual clue.', 'Curtis handcuff release and taunt beat requires clear spacing around Eddie desk.', 'Line about witness triggers next hunt sequence; call lighting snap into darker palette at scene end.', 'Prep gang exits so scene 9 street number starts with momentum.'] },
+            9: { cast: ['Curtis', 'Joey', 'TJ', 'Pablo', 'Ensemble'], notes: ['Street look and vocal aggression drive "When I Find My Baby"; keep center lane open for Curtis.', 'Gang echo lines are directional; spread mics/panels for clear spatial contrast.', 'No large props should remain from station set except what is scripted for this street world.', 'End cue hands directly into bar interior; bar practicals should already be live on next reveal.'] },
+            10: { cast: ['Deloris', 'Sister Mary Patrick', 'Sister Mary Robert', 'Joey', 'TJ', 'Pablo', 'Waitress', 'Pool Player', 'Bar Patrons', 'Drag Queen'], notes: ['Bar scene has high prop density: jukebox, drinks, cheesesteaks, and drag quick-gag pieces.', 'Drag reveal requires secure breakaway wig/top/chest gag setup with wardrobe and ASM double-check.', 'Mary Patrick and Mary Robert comic beats rely on timing with disco ball special.', 'Set exits must clear for immediate exterior continuation into scene 11.'] },
+            11: { cast: ['Deloris', 'Sister Mary Patrick', 'Sister Mary Robert', 'Mother Superior', 'Eddie', 'Joey', 'TJ', 'Pablo', 'Drag Queen'], notes: ['Exterior bar confrontation: keep three-nun freeze picture readable on reveal.', 'Mother Superior reprimand and Eddie argument should sit in clean front light for clarity.', 'This scene launches "I Could Be That Guy" energy; prep Eddie costume continuity if using fantasy layer.', 'On exit, clear all chase remnants to prep convent hallway quickly.'] },
+            12: { cast: ['Mother Superior', 'Deloris', 'Monsignor O\'Hara'], notes: ['Hallway confrontation is short but plot-critical; prioritize diction and stillness.', 'Mother Superior assigns choir task; this sets up scene 13, so hold scenic noise during final lines.', 'Monsignor bad-news beat lands at end; keep practical sound low so text is audible.', 'Music room piano should be checked and live before blackout transition.'] },
+            13: { cast: ['Deloris', 'Sister Mary Lazarus', 'Sister Mary Patrick', 'Sister Mary Robert', 'Sister Mary Martin-of-Tours', 'Mother Superior', 'Monsignor O\'Hara', 'Nuns'], notes: ['Music room sequence builds from chaos to polished ensemble for "Raise Your Voice".', 'Choir books begin in hand and are put down later; track this choreography to avoid dropped props.', 'Mary Robert growth moments require clear visual lane downstage center.', 'Final choral build is long; monitor stamina and keep backstage crossover traffic fully paused.'] },
+            14: { cast: ['Deloris', 'Mother Superior', 'Monsignor O\'Hara', 'Sister Mary Lazarus', 'Sister Mary Robert', 'Sister Mary Patrick', 'Eddie', 'Nuns', 'Congregation'], notes: ['Act 1 finale in church: house-facing energy and collection-plate bit must read to full audience.', 'Monsignor and Mother Superior reactions are active scene drivers, not background; keep side specials ready.', 'Eddie enters near end to force crisis turn; ensure clear entrance path through congregation traffic.', 'End of first act: execute full intermission reset checklist immediately on blackout.'] },
+            15: { cast: ['Crew Only'], notes: ['Intermission running: reset all Act 2 scenic and prop presets to pre-approved plot.', 'Recheck choir mics, costume quick-change stations, and gang disguise pieces.', 'Confirm confessional unit and church practicals before 5-minute call.', 'Make 5-minute and places calls on schedule; verify all principals accounted for.'] },
+            16: { cast: ['Mother Superior', 'Deloris', 'Monsignor O\'Hara'], notes: ['Confessional split staging must align sightlines so both windows are visible to audience.', 'Dialogue pace is brisk with door/window business; coordinate with operator for panel movement.', 'Check prop check handoff and confessional curtain action timing.', 'Scene ends with negotiated compromise; cue into service atmosphere immediately after.'] },
+            17: { cast: ['Monsignor O\'Hara', 'Mother Superior', 'Deloris', 'Nuns', 'Congregation'], notes: ['Church service with "Sunday Morning Fever" needs layered vocals and front-of-house engagement.', 'Tote-board reveal gag should be preset and tested for clean visibility.', 'Maintain controlled chaos feel while preserving lyric intelligibility.', 'Build to transition where Curtis investigation track takes over.'] },
+            18: { cast: ['Curtis', 'Joey', 'TJ', 'Pablo', 'Cab Driver'], notes: ['Curtis office intimidation beat: gagged cab driver prop and restraint must be safe and repeatable.', 'Keep focus tight on Curtis to support threat escalation.', 'Gang reactions drive humor under menace; preserve spacing for all four.', 'End cue pivots to Mother Superior insomnia scene; quiet transition needed.'] },
+            19: { cast: ['Mother Superior'], notes: ['Solo office prayer scene is intimate and still; isolate a focused special.', 'Nightclothes continuity required for this beat before later costume shift.', 'No backstage movement during prayer monologue for maximum text clarity.', 'Prep immediate reveal into Mary Clarence room with nuns.'] },
+            20: { cast: ['Deloris', 'Sister Mary Robert', 'Sister Mary Patrick', 'Sister Mary Lazarus', 'Nuns'], notes: ['Mary Clarence room wake-up scene includes rapid entrance cluster; keep door lanes clean.', 'This scene launches "I Haven\'t Got a Prayer" arc and nun confidence shift.', 'Shoe/choreography bits require clear floor and spike discipline.', 'Transition to changing room must preserve quick-change rack order.'] },
+            21: { cast: ['Deloris', 'Sister Mary Robert', 'Nuns'], notes: ['Changing room supports "The Life I Never Led" emotional build; reduce visual clutter.', 'Wardrobe continuity is critical as Deloris changes back toward street identity.', 'Mary Robert coaching beats should stay intimate and audible.', 'Prep apartment set with Eddie props before blackout.'] },
+            22: { cast: ['Eddie', 'Deloris', 'Homeless Ensemble'], notes: ['Apartment scene carries Eddie arc and fantasy transformations in "I Could Be That Guy" reprise world.', 'If fantasy suit reveal is used, verify rip-away layers and reset plan.', 'Homeless ensemble entries/exits must stay silent and coordinated with choreography.', 'Conclude with move toward Deloris departure and outside-church setup.'] },
+            23: { cast: ['Curtis', 'Joey', 'TJ', 'Pablo'], notes: ['Outside Queen of Angels setup (Scene 8 in Act 2 text) includes disguise prep and gang regroup.', 'Cop-light effect and exterior atmosphere should already be active on reveal.', 'Prop bundle includes bouquet, chocolates, stuffed animal, garment bags, and flashlight.', 'Short scene: keep pace sharp into the next Queen of Angels interior beat.'] },
+            24: { cast: ['Mother Superior', 'Deloris', 'Sister Mary Robert', 'Sister Mary Patrick', 'Sister Mary Lazarus', 'Nuns'], notes: ['Queen of Angels interior return; nuns begin subdued before Deloris re-energizes the room.', 'Mother Superior and Deloris reconciliation tone shift must be legible and warm.', 'Music binders and choir spacing should already be in papal-mass formation prep.', 'Escalate urgency into active chase infiltration.'] },
+            25: { cast: ['Deloris', 'Eddie', 'Curtis', 'Joey', 'TJ', 'Pablo', 'Mother Superior', 'Sister Mary Robert', 'Sister Mary Patrick', 'Sister Mary Lazarus', 'Monsignor O\'Hara', 'Nuns'], notes: ['Full church chase (Act 2 Scene 10) is traffic-heavy; use pre-agreed chase lanes only.', 'Gang disguise reveal beats and nun misdirection cues require precise timing calls.', 'Fight captain should confirm spacing at every run due to speed and multi-level movement.', 'Final capture/turn setup must leave stage picture ready for papal mass entrance.'] },
+            26: { cast: ['Monsignor O\'Hara', 'Pope Entourage', 'Deloris', 'Mother Superior', 'Eddie', 'Curtis', 'Joey', 'TJ', 'Pablo', 'Sister Mary Robert', 'Sister Mary Patrick', 'Sister Mary Lazarus', 'Nuns', 'Ensemble'], notes: ['Sunday Papal Mass and finale sequence includes "Spread the Love Around," bows, and final vocal sections.', 'Large-company spacing and bow order must be preset and posted backstage.', 'Curtain-call mic assignments and handoff points should be verified before scene start.', 'Hold final tableau until conductor clear; release only on curtain or stage manager call.'] }
+        };
+        const defaultSceneContext = librettoScenePresets;
+
+        const startBtn = document.getElementById('start-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const intermissionBtn = document.getElementById('intermission-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const statusLight = document.getElementById('status-light');
+        const showStateText = document.getElementById('show-state-text');
+        const sceneContextSelect = document.getElementById('scene-context-scene');
+        const sceneCastEditor = document.getElementById('scene-cast-editor');
+        const sceneNotesEditor = document.getElementById('scene-notes-editor');
+        const castOnStageContainer = document.getElementById('cast-on-stage');
+        const notesList = document.getElementById('notes-list');
+
+        function getSceneContext(sceneNum) {
+            return sceneContextData[sceneNum] || defaultSceneContext[sceneNum] || {
+                cast: ['Full Company'],
+                notes: ['No scene-specific notes set.']
+            };
+        }
+
+        function renderSceneContext(sceneNum) {
+            const context = getSceneContext(sceneNum);
+            castOnStageContainer.innerHTML = context.cast.map((name) => `<span class="cast-badge">${name}</span>`).join('');
+            notesList.innerHTML = context.notes.map((note) => `<li>${note}</li>`).join('');
+        }
+
+        function applyVisibleScenes(currentSceneNum) {
+            const currentIndex = sceneOrder.indexOf(currentSceneNum);
+            document.querySelectorAll('.scene-item').forEach((item) => {
+                item.classList.remove('current', 'upcoming', 'preview', 'completed');
+            });
+
+            if (currentIndex === -1) {
+                return;
+            }
+
+            const currentItem = document.querySelector(`.scene-item[data-scene="${sceneOrder[currentIndex]}"]`);
+            if (currentItem) currentItem.classList.add('current');
+
+            const upcomingItem = document.querySelector(`.scene-item[data-scene="${sceneOrder[currentIndex + 1]}"]`);
+            if (upcomingItem) upcomingItem.classList.add('upcoming');
+
+            const preview1Item = document.querySelector(`.scene-item[data-scene="${sceneOrder[currentIndex + 2]}"]`);
+            if (preview1Item) preview1Item.classList.add('preview');
+
+            const preview2Item = document.querySelector(`.scene-item[data-scene="${sceneOrder[currentIndex + 3]}"]`);
+            if (preview2Item) preview2Item.classList.add('preview');
+        }
+
+        function populateSceneContextSelector() {
+            const sceneOptions = Array.from(document.querySelectorAll('#current-scene option'));
+            sceneContextSelect.innerHTML = sceneOptions.map((option) => `<option value="${option.value}">${option.textContent}</option>`).join('');
+            sceneContextSelect.value = String(activeSceneNumber);
+        }
+
+        function loadSceneContextEditor(sceneNum) {
+            const context = getSceneContext(sceneNum);
+            sceneCastEditor.value = context.cast.join('\n');
+            sceneNotesEditor.value = context.notes.join('\n');
+        }
+
+        function saveSceneContextEditor(sceneNum) {
+            const cast = sceneCastEditor.value.split('\n').map((line) => line.trim()).filter(Boolean);
+            const notes = sceneNotesEditor.value.split('\n').map((line) => line.trim()).filter(Boolean);
+            sceneContextData[sceneNum] = {
+                cast: cast.length ? cast : ['Full Company'],
+                notes: notes.length ? notes : ['No scene-specific notes set.']
+            };
+        }
+
+        function formatTime(secs) {
+            const hours = Math.floor(secs / 3600);
+            const minutes = Math.floor((secs % 3600) / 60);
+            const seconds = secs % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function updateTimer() {
+            seconds++;
+            const timerDisplay = document.getElementById('timer');
+            if (timerDisplay) {
+                timerDisplay.textContent = formatTime(seconds);
+            }
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (isIntermission) {
+                // Always allow ending intermission, regardless of timerInterval state
+                clearInterval(timerInterval);
+                timerInterval = null;
+                isIntermission = false;
+                seconds = pausedShowTime;
+                
+                // Restore to previous state
+                if (previousShowState === 'rehearsal') {
+                    statusLight.className = 'status-indicator rehearsal';
+                    showStateText.textContent = 'REHEARSAL';
+                } else {
+                    statusLight.className = 'status-indicator live';
+                    showStateText.textContent = 'LIVE SHOW';
+                }
+                
+                // Show single timer again
+                const timerContainer = document.getElementById('timer-container');
+                timerContainer.innerHTML = '<div class="timer" id="timer">' + formatTime(seconds) + '</div>';
+                
+                // RESUME the show timer (start running)
+                timerInterval = setInterval(() => {
+                    seconds++;
+                    document.getElementById('timer').textContent = formatTime(seconds);
+                }, 1000);
+                
+                startBtn.textContent = 'RUNNING';
+            } else if (!timerInterval) {
+                // Normal start
+                timerInterval = setInterval(updateTimer, 1000);
+                startBtn.textContent = 'RUNNING';
+                
+                // Set status based on performance mode
+                if (performanceMode === 'rehearsal') {
+                    statusLight.className = 'status-indicator rehearsal';
+                    showStateText.textContent = 'REHEARSAL';
+                    previousShowState = 'rehearsal';
+                } else {
+                    statusLight.className = 'status-indicator live';
+                    showStateText.textContent = 'LIVE SHOW';
+                    previousShowState = 'live';
+                }
+            }
+        });
+
+        pauseBtn.addEventListener('click', () => {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                startBtn.textContent = 'RESUME';
+            }
+        });
+
+        intermissionBtn.addEventListener('click', () => {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            
+            // Save current state
+            if (showStateText.textContent === 'REHEARSAL') {
+                previousShowState = 'rehearsal';
+            } else {
+                previousShowState = 'live';
+            }
+            
+            isIntermission = true;
+            pausedShowTime = seconds;
+            intermissionSeconds = 0;
+            
+            showStateText.textContent = 'INTERMISSION';
+            statusLight.className = 'status-indicator standby';
+            
+            // Create dual timer display
+            const timerContainer = document.getElementById('timer-container');
+            timerContainer.innerHTML = `
+                <div class="dual-timer-container">
+                    <div class="paused-timer" id="paused-timer">${formatTime(pausedShowTime)}</div>
+                    <div class="intermission-timer" id="intermission-timer">00:00:00</div>
+                </div>
+            `;
+            
+            // Start intermission countdown
+            timerInterval = setInterval(() => {
+                intermissionSeconds++;
+                document.getElementById('intermission-timer').textContent = formatTime(intermissionSeconds);
+            }, 1000);
+            
+            startBtn.textContent = 'END INTERMISSION [1]';
+        });
+
+        resetBtn.addEventListener('click', () => {
+            if (confirm('Reset timer to 00:00:00?')) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                seconds = 0;
+                pausedShowTime = 0;
+                intermissionSeconds = 0;
+                isIntermission = false;
+                
+                const timerContainer = document.getElementById('timer-container');
+                timerContainer.innerHTML = '<div class="timer" id="timer">00:00:00</div>';
+                
+                startBtn.textContent = 'START SHOW [1]';
+                statusLight.className = 'status-indicator standby';
+                showStateText.textContent = 'STANDBY';
+                
+                // Reset all scenes
+                document.querySelectorAll('.scene-item').forEach(item => {
+                    item.classList.remove('current', 'completed', 'upcoming', 'preview');
+                });
+                currentSceneOverride = null;
+                activeSceneNumber = 1;
+                updateSceneDisplay();
+            }
+        });
+
+        // Scene tracking - auto-highlight based on timer
+        const sceneTimings = [
+            { scene: 1, start: 0, duration: 720 },      // 12 min
+            { scene: 2, start: 720, duration: 240 },    // 4 min
+            { scene: 3, start: 960, duration: 120 },    // 2 min
+            { scene: 4, start: 1080, duration: 300 },   // 5 min
+            { scene: 5, start: 1380, duration: 480 },   // 8 min
+            { scene: 6, start: 1860, duration: 600 },   // 10 min
+            { scene: 7, start: 2460, duration: 240 },   // 4 min
+            { scene: 8, start: 2700, duration: 180 },   // 3 min
+            { scene: 9, start: 2880, duration: 360 },   // 6 min
+            { scene: 10, start: 3240, duration: 420 },  // 7 min
+            { scene: 11, start: 3660, duration: 240 },  // 4 min
+            { scene: 12, start: 3900, duration: 180 },  // 3 min
+            { scene: 13, start: 4080, duration: 600 },  // 10 min
+            { scene: 14, start: 4680, duration: 420 },  // 7 min
+            { scene: 16, start: 5100, duration: 360 },  // 6 min
+            { scene: 17, start: 5460, duration: 480 },  // 8 min
+            { scene: 18, start: 5940, duration: 360 },  // 6 min
+            { scene: 19, start: 6300, duration: 300 },  // 5 min
+            { scene: 20, start: 6600, duration: 360 },  // 6 min
+            { scene: 21, start: 6960, duration: 360 },  // 6 min
+            { scene: 22, start: 7320, duration: 540 },  // 9 min
+            { scene: 23, start: 7860, duration: 180 },  // 3 min
+            { scene: 24, start: 8040, duration: 420 },  // 7 min
+            { scene: 25, start: 8460, duration: 300 },  // 5 min
+            { scene: 26, start: 8760, duration: 600 }   // 10 min
+        ];
+
+        function updateSceneDisplay() {
+            let currentSceneNumber = 1;
+
+            if (isIntermission) {
+                currentSceneNumber = 15;
+            } else if (currentSceneOverride !== null) {
+                currentSceneNumber = currentSceneOverride;
+            } else {
+                const currentScene = sceneTimings.find((s) => seconds >= s.start && seconds < s.start + s.duration);
+                if (currentScene) {
+                    currentSceneNumber = currentScene.scene;
+                }
+            }
+
+            activeSceneNumber = currentSceneNumber;
+            applyVisibleScenes(currentSceneNumber);
+            renderSceneContext(currentSceneNumber);
+        }
+
+        setInterval(() => {
+            updateSceneDisplay();
+        }, 1000);
+        
+        // Initialize display
+        updateSceneDisplay();
+
+        // Secret settings access - press 'j' three times
+        let jPressCount = 0;
+        let jPressTimer = null;
+        const progressIndicator = document.getElementById('progress-indicator');
+        const progressFill = document.getElementById('progress-fill');
+        const settingsOverlay = document.getElementById('settings-overlay');
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'j') {
+                jPressCount++;
+                
+                // Show progress
+                progressIndicator.classList.add('active');
+                progressFill.style.width = `${(jPressCount / 3) * 100}%`;
+                
+                // Reset timer
+                clearTimeout(jPressTimer);
+                
+                if (jPressCount >= 3) {
+                    // Prompt for passcode
+                    setTimeout(() => {
+                        const passcode = prompt('Enter passcode:');
+                        if (passcode === '2905') {
+                            settingsOverlay.classList.add('active');
+                        } else {
+                            alert('Incorrect passcode');
+                        }
+                        jPressCount = 0;
+                        progressIndicator.classList.remove('active');
+                        progressFill.style.width = '0%';
+                    }, 300);
+                } else {
+                    jPressTimer = setTimeout(() => {
+                        jPressCount = 0;
+                        progressIndicator.classList.remove('active');
+                        progressFill.style.width = '0%';
+                    }, 2000);
+                }
+            }
+        });
+
+        // Settings panel controls
+        document.getElementById('close-settings').addEventListener('click', () => {
+            settingsOverlay.classList.remove('active');
+        });
+
+        document.getElementById('save-settings').addEventListener('click', () => {
+            // Apply settings
+            const showName = document.getElementById('show-name').value;
+            const statusMode = document.getElementById('status-mode').value;
+            const currentSceneNum = parseInt(document.getElementById('current-scene').value);
+            const timerSize = document.getElementById('timer-size').value;
+            const intermissionDuration = document.getElementById('intermission-duration').value;
+
+            // Persist current scene context edits before saving settings
+            saveSceneContextEditor(parseInt(sceneContextSelect.value, 10));
+            
+            // Save performance mode
+            performanceMode = statusMode;
+            
+            // Save to localStorage
+            const settings = {
+                showName: showName,
+                statusMode: statusMode,
+                currentScene: currentSceneNum,
+                timerSize: timerSize,
+                intermissionDuration: intermissionDuration,
+                sceneContextData: sceneContextData
+            };
+            localStorage.setItem('backstageSettings', JSON.stringify(settings));
+            
+            document.querySelector('h1').textContent = `🎭 ${showName.toUpperCase()} - BACKSTAGE - STAGE RIGHT`;
+            document.title = `${showName} - Backstage - Stage Right`;
+            
+            // Update status based on mode (only if timer not running)
+            if (!timerInterval) {
+                if (statusMode === 'rehearsal') {
+                    statusLight.className = 'status-indicator rehearsal';
+                    showStateText.textContent = 'STANDBY';
+                } else {
+                    statusLight.className = 'status-indicator standby';
+                    showStateText.textContent = 'STANDBY';
+                }
+            }
+            
+            // Highlight selected scene
+            currentSceneOverride = currentSceneNum;
+            updateSceneDisplay();
+            
+            const timerDisplay = document.getElementById('timer') || document.querySelector('.timer');
+            if (timerDisplay) {
+                timerDisplay.style.fontSize = timerSize;
+            }
+            
+            settingsOverlay.classList.remove('active');
+            
+            alert('✓ Settings saved successfully!');
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Close settings with Escape key - SAVE settings
+            if (e.key === 'Escape' && settingsOverlay.classList.contains('active')) {
+                document.getElementById('save-settings').click();
+                return;
+            }
+            
+            // Don't trigger shortcuts when settings are open
+            if (settingsOverlay.classList.contains('active')) {
+                return;
+            }
+            
+            // '1' key - Start/Pause or End Intermission
+            if (e.key === '1') {
+                if (isIntermission) {
+                    startBtn.click();
+                } else if (!timerInterval) {
+                    startBtn.click();
+                } else {
+                    pauseBtn.click();
+                }
+            }
+            
+            // '2' key - Start Intermission
+            if (e.key === '2') {
+                intermissionBtn.click();
+            }
+            
+            // '3' key - Reset (with confirmation)
+            if (e.key === '3') {
+                resetBtn.click();
+            }
+            
+            // 't' key - Advance to next scene/act
+            if (e.key === 't' || e.key === 'T') {
+                advanceToNextScene();
+            }
+        });
+        
+        // Function to advance to next scene
+        function advanceToNextScene() {
+            // Find current scene index based on timer or override
+            const currentSceneForNav = isIntermission ? 15 : activeSceneNumber;
+            const currentSceneIndex = sceneOrder.indexOf(currentSceneForNav);
+            
+            const nextSceneIndex = currentSceneIndex + 1;
+            
+            // Check if next scene exists
+            if (nextSceneIndex < sceneOrder.length) {
+                // Set scene override to show next scene (use scene number, not index)
+                currentSceneOverride = sceneOrder[nextSceneIndex];
+                if (!isIntermission) {
+                    updateSceneDisplay();
+                } else {
+                    // We're in intermission and pressing 't' -> go to Act 2 Scene 1
+                    isIntermission=false;
+                    statusLight.className = 'status-indicator live';
+                    showStateText.textContent = 'LIVE SHOW';
+                    const timerContainer = document.getElementById('timer-container');
+                    timerContainer.innerHTML = '<div class="timer" id="timer">' + formatTime(seconds) + '</div>';
+                    timerInterval = setInterval(() => {
+                        seconds++;
+                        document.getElementById('timer').textContent = formatTime(seconds);
+                    }, 1000);
+                    startBtn.textContent = 'RUNNING';
+                    updateSceneDisplay();
+                }
+            } else if (nextSceneIndex === sceneOrder.length && !isIntermission) {
+                // After last scene, can't go further
+                // Do nothing
+            }
+        }
+
+        sceneContextSelect.addEventListener('change', () => {
+            const previouslyEditing = parseInt(sceneContextSelect.dataset.previousScene || sceneContextSelect.value, 10);
+            saveSceneContextEditor(previouslyEditing);
+            const nextScene = parseInt(sceneContextSelect.value, 10);
+            sceneContextSelect.dataset.previousScene = String(nextScene);
+            loadSceneContextEditor(nextScene);
+        });
+        
+        // Load saved settings on page load
+        function loadSettings() {
+            const savedSettings = localStorage.getItem('backstageSettings');
+            let usePresets = true;
+
+            if (savedSettings) {
+                const loadChoice = prompt('Load mode: type PRESETS or SAVED', 'PRESETS');
+                usePresets = (loadChoice || 'PRESETS').trim().toUpperCase() !== 'SAVED';
+            }
+
+            if (savedSettings && !usePresets) {
+                const settings = JSON.parse(savedSettings);
+                
+                // Apply show name
+                if (settings.showName) {
+                    document.querySelector('h1').textContent = `🎭 ${settings.showName.toUpperCase()} - BACKSTAGE - STAGE RIGHT`;
+                    document.title = `${settings.showName} - Backstage - Stage Right`;
+                    document.getElementById('show-name').value = settings.showName;
+                }
+                
+                // Apply status mode
+                if (settings.statusMode) {
+                    performanceMode = settings.statusMode;
+                    document.getElementById('status-mode').value = settings.statusMode;
+                    // Show STANDBY initially since timer hasn't started
+                    statusLight.className = 'status-indicator standby';
+                    showStateText.textContent = 'STANDBY';
+                }
+                
+                // Apply current scene
+                if (settings.currentScene) {
+                    document.getElementById('current-scene').value = settings.currentScene;
+                    currentSceneOverride = parseInt(settings.currentScene, 10);
+                }
+                
+                // Apply timer size
+                if (settings.timerSize) {
+                    document.getElementById('timer-size').value = settings.timerSize;
+                    const timerDisplay = document.getElementById('timer');
+                    if (timerDisplay) {
+                        timerDisplay.style.fontSize = settings.timerSize;
+                    }
+                }
+                
+                // Apply intermission duration
+                if (settings.intermissionDuration) {
+                    document.getElementById('intermission-duration').value = settings.intermissionDuration;
+                }
+                
+                // Apply scene-specific cast/notes
+                if (settings.sceneContextData) {
+                    sceneContextData = settings.sceneContextData;
+                }
+            } else {
+                // Use libretto-based presets
+                sceneContextData = JSON.parse(JSON.stringify(librettoScenePresets));
+                statusLight.className = 'status-indicator standby';
+                showStateText.textContent = 'STANDBY';
+            }
+
+            populateSceneContextSelector();
+            sceneContextSelect.dataset.previousScene = sceneContextSelect.value;
+            loadSceneContextEditor(parseInt(sceneContextSelect.value, 10));
+            updateSceneDisplay();
+        }
+        
+        // Load settings on page load
+        loadSettings();
+    </script>
+
+    <!-- Firebase SDKs (Realtime Database, v8 compatibility) -->
+    <!--
+        TODO: Replace the firebaseConfig object below with your Firebase project's
+        realtime database credentials. You will need these fields from your
+        Firebase console (Project Settings -> General & Realtime Database URL):
+
+        apiKey, authDomain, databaseURL, projectId, storageBucket,
+        messagingSenderId, appId
+
+        Example: set databaseURL to: "https://your-project-id-default-rtdb.firebaseio.com"
+    -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script>
+        // Firebase config provided by user. If your Realtime Database URL differs,
+        // replace the `databaseURL` value below with the exact URL from the
+        // Firebase Console > Realtime Database (e.g. https://PROJECT-ID-default-rtdb.firebaseio.com)
+        const firebaseConfig = {
+            apiKey: "AIzaSyB9lJftiNk6Ico3RYkVb1LOXO9mngC9fGI",
+            authDomain: "scene-tracker-90242.firebaseapp.com",
+            databaseURL: "https://scene-tracker-90242-default-rtdb.europe-west1.firebasedatabase.app/",
+            projectId: "scene-tracker-90242",
+            storageBucket: "scene-tracker-90242.firebasestorage.app",
+            messagingSenderId: "760568481577",
+            appId: "1:760568481577:web:9d26075822a403dd39d938"
+        };
+
+        // Initialize Firebase (if configured)
+        try {
+            if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.databaseURL) {
+                firebase.initializeApp(firebaseConfig);
+                const sceneRef = firebase.database().ref('scene');
+                // Expose for debugging / other scripts
+                window.sceneRef = sceneRef;
+
+                // Listen for remote changes to the 'scene' value and update display
+                sceneRef.on('value', (snapshot) => {
+                    const val = snapshot.val();
+                    if (val === null || typeof val === 'undefined') {
+                        // No value yet in DB; do not override local state
+                        console.info('Firebase: scene not set yet in DB');
+                        return;
+                    }
+                    const num = parseInt(val, 10);
+                    if (isNaN(num)) return;
+                    // Update the UI to reflect remote scene change
+                    currentSceneOverride = num;
+                    // Clear intermission if remote set to not-intermission
+                    if (currentSceneOverride === 15) {
+                        isIntermission = true;
+                    } else {
+                        isIntermission = false;
+                    }
+                    updateSceneDisplay();
+                });
+            } else {
+                console.warn('Firebase config not set. Real-time sync disabled.');
+            }
+        } catch (err) {
+            console.error('Firebase init error', err);
+        }
+
+        // Override advanceToNextScene so pressing 'T' updates the shared DB
+        (function overrideAdvance() {
+            const originalAdvance = window.advanceToNextScene;
+            window.advanceToNextScene = function() {
+                try {
+                    const currentSceneForNav = isIntermission ? 15 : activeSceneNumber;
+                    const currentSceneIndex = sceneOrder.indexOf(currentSceneForNav);
+                    const nextSceneIndex = currentSceneIndex + 1;
+
+                    if (nextSceneIndex < sceneOrder.length) {
+                        const nextSceneNumber = sceneOrder[nextSceneIndex];
+                        if (window.sceneRef) {
+                            window.sceneRef.set(nextSceneNumber);
+                        } else {
+                            // Fallback to local-only behavior
+                            currentSceneOverride = nextSceneNumber;
+                            if (!isIntermission) updateSceneDisplay();
+                        }
+                    } else if (nextSceneIndex === sceneOrder.length && !isIntermission) {
+                        // do nothing (end)
+                    }
+                } catch (e) {
+                    // If anything goes wrong, fallback to original
+                    if (originalAdvance) originalAdvance();
+                }
+            };
+        })();
+
+        // When saving settings we should also persist scene change to DB if available
+        (function patchSaveSettings() {
+            const saveBtn = document.getElementById('save-settings');
+            if (!saveBtn) return;
+            const origHandler = saveBtn.onclick;
+            // We attach an additional listener instead of replacing existing logic
+            saveBtn.addEventListener('click', () => {
+                try {
+                    const currentSceneNum = parseInt(document.getElementById('current-scene').value, 10);
+                    if (!isNaN(currentSceneNum) && window.sceneRef) {
+                        window.sceneRef.set(currentSceneNum);
+                    }
+                } catch (err) {
+                    console.warn('Could not write scene to Firebase', err);
+                }
+            });
+        })();
+
+        // When resetting, set DB to scene 1 (so clients sync). Fallback if no DB.
+        (function patchReset() {
+            const resetBtnLocal = document.getElementById('reset-btn');
+            if (!resetBtnLocal) return;
+            // Add an after-click hook by listening to click
+            resetBtnLocal.addEventListener('click', () => {
+                // Default confirmation in existing handler will run first; we only write after
+                setTimeout(() => {
+                    try {
+                        if (window.sceneRef) {
+                            window.sceneRef.set(1);
+                        }
+                    } catch (err) {
+                        console.warn('Could not write reset scene to Firebase', err);
+                    }
+                }, 50);
+            });
+        })();
+    </script>
+</body>
+</html>
