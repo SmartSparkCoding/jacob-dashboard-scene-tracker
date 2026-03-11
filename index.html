@@ -881,6 +881,25 @@
         }
 
         startBtn.addEventListener('click', () => {
+            // If Firebase is available, write intent to DB and let the realtime listener update UI
+            if (typeof firebase !== 'undefined' && firebase.database) {
+                try {
+                    const timerRef = firebase.database().ref('timer');
+                    if (isIntermission) {
+                        // Resume the show using pausedShowTime as previous elapsed
+                        const prevMs = (pausedShowTime || 0) * 1000;
+                        timerRef.set({ state: 'running', startAt: firebase.database.ServerValue.TIMESTAMP, elapsedBeforeMs: prevMs, mode: 'show' });
+                    } else {
+                        const curMs = (seconds || 0) * 1000;
+                        timerRef.set({ state: 'running', startAt: firebase.database.ServerValue.TIMESTAMP, elapsedBeforeMs: curMs, mode: 'show' });
+                    }
+                    return;
+                } catch (e) {
+                    console.warn('Failed to write start to Firebase, falling back to local', e);
+                }
+            }
+
+            // Local fallback behavior (no DB)
             if (isIntermission) {
                 // Always allow ending intermission, regardless of timerInterval state
                 clearInterval(timerInterval);
@@ -927,6 +946,18 @@
         });
 
         pauseBtn.addEventListener('click', () => {
+            // If Firebase available, write paused state to DB so admin sees it
+            if (typeof firebase !== 'undefined' && firebase.database) {
+                try {
+                    const timerRef = firebase.database().ref('timer');
+                    const elapsedMs = (seconds || 0) * 1000;
+                    timerRef.set({ state: 'paused', startAt: null, elapsedBeforeMs: elapsedMs, mode: isIntermission ? 'intermission' : 'show' });
+                    return;
+                } catch (e) {
+                    console.warn('Failed to write pause to Firebase, falling back to local', e);
+                }
+            }
+
             if (timerInterval) {
                 clearInterval(timerInterval);
                 timerInterval = null;
@@ -935,25 +966,38 @@
         });
 
         intermissionBtn.addEventListener('click', () => {
+            // If Firebase available, write intermission start to DB and let listener update UI
+            if (typeof firebase !== 'undefined' && firebase.database) {
+                try {
+                    const timerRef = firebase.database().ref('timer');
+                    const prevMs = (seconds || 0) * 1000;
+                    // set mode to intermission and keep previousElapsedMs so admin can resume
+                    timerRef.set({ state: 'running', startAt: firebase.database.ServerValue.TIMESTAMP, elapsedBeforeMs: 0, mode: 'intermission', previousElapsedMs: prevMs });
+                    return;
+                } catch (e) {
+                    console.warn('Failed to write intermission to Firebase, falling back to local', e);
+                }
+            }
+
             if (timerInterval) {
                 clearInterval(timerInterval);
                 timerInterval = null;
             }
-            
+
             // Save current state
             if (showStateText.textContent === 'REHEARSAL') {
                 previousShowState = 'rehearsal';
             } else {
                 previousShowState = 'live';
             }
-            
+
             isIntermission = true;
             pausedShowTime = seconds;
             intermissionSeconds = 0;
-            
+
             showStateText.textContent = 'INTERMISSION';
             statusLight.className = 'status-indicator standby';
-            
+
             // Create dual timer display
             const timerContainer = document.getElementById('timer-container');
             timerContainer.innerHTML = `
@@ -962,32 +1006,66 @@
                     <div class="intermission-timer" id="intermission-timer">00:00:00</div>
                 </div>
             `;
-            
+
             // Start intermission countdown
             timerInterval = setInterval(() => {
                 intermissionSeconds++;
                 document.getElementById('intermission-timer').textContent = formatTime(intermissionSeconds);
             }, 1000);
-            
+
             startBtn.textContent = 'END INTERMISSION [1]';
         });
 
         resetBtn.addEventListener('click', () => {
             if (confirm('Reset timer to 00:00:00?')) {
+                // If Firebase available, write stopped state to DB and let listener update UI
+                if (typeof firebase !== 'undefined' && firebase.database) {
+                    try {
+                        const timerRef = firebase.database().ref('timer');
+                        timerRef.set({ state: 'stopped', startAt: null, elapsedBeforeMs: 0, mode: 'show' });
+                    } catch (e) {
+                        console.warn('Failed to write reset to Firebase, falling back to local', e);
+                        // local fallback below
+                        clearInterval(timerInterval);
+                        timerInterval = null;
+                        seconds = 0;
+                        pausedShowTime = 0;
+                        intermissionSeconds = 0;
+                        isIntermission = false;
+
+                        const timerContainer = document.getElementById('timer-container');
+                        timerContainer.innerHTML = '<div class="timer" id="timer">00:00:00</div>';
+
+                        startBtn.textContent = 'START SHOW [1]';
+                        statusLight.className = 'status-indicator standby';
+                        showStateText.textContent = 'STANDBY';
+
+                        // Reset all scenes
+                        document.querySelectorAll('.scene-item').forEach(item => {
+                            item.classList.remove('current', 'completed', 'upcoming', 'preview');
+                        });
+                        currentSceneOverride = null;
+                        activeSceneNumber = 1;
+                        updateSceneDisplay();
+                    }
+                    return;
+                }
+
+                // Local fallback
                 clearInterval(timerInterval);
                 timerInterval = null;
                 seconds = 0;
                 pausedShowTime = 0;
                 intermissionSeconds = 0;
                 isIntermission = false;
-                
+
                 const timerContainer = document.getElementById('timer-container');
                 timerContainer.innerHTML = '<div class="timer" id="timer">00:00:00</div>';
-                
+
                 startBtn.textContent = 'START SHOW [1]';
                 statusLight.className = 'status-indicator standby';
                 showStateText.textContent = 'STANDBY';
-                
+
                 // Reset all scenes
                 document.querySelectorAll('.scene-item').forEach(item => {
                     item.classList.remove('current', 'completed', 'upcoming', 'preview');
@@ -1375,6 +1453,165 @@
                     }
                     updateSceneDisplay();
                 });
+                // Listen for timer updates
+                const timerRef = firebase.database().ref('timer');
+                timerRef.on('value', (snap) => {
+                    const t = snap.val();
+                    if (!t) return;
+
+                    // Clear any local interval to avoid conflict
+                    if (timerInterval) {
+                        clearInterval(timerInterval);
+                        timerInterval = null;
+                    }
+
+                    // Apply timer state from DB
+                    const state = t.state || 'stopped';
+                    const mode = t.mode || 'show';
+                    const elapsedBefore = parseInt(t.elapsedBeforeMs || 0, 10);
+                    const startAt = parseInt(t.startAt || 0, 10);
+
+                        // Update intermission flag
+                        if (mode === 'intermission') {
+                            isIntermission = true;
+                        } else {
+                            isIntermission = false;
+                        }
+
+                        // Update top-right status indicator based on timer state + mode
+                        try {
+                            if (mode === 'intermission') {
+                                statusLight.className = 'status-indicator standby';
+                                showStateText.textContent = 'INTERMISSION';
+                            } else if (state === 'running') {
+                                if (performanceMode === 'rehearsal') {
+                                    statusLight.className = 'status-indicator rehearsal';
+                                    showStateText.textContent = 'REHEARSAL';
+                                } else {
+                                    statusLight.className = 'status-indicator live';
+                                    showStateText.textContent = 'LIVE SHOW';
+                                }
+                            } else if (state === 'paused') {
+                                statusLight.className = 'status-indicator standby';
+                                showStateText.textContent = 'PAUSED';
+                            } else {
+                                statusLight.className = 'status-indicator standby';
+                                showStateText.textContent = 'STANDBY';
+                            }
+                        } catch (e) {
+                            console.warn('Could not update status indicator from DB timer event', e);
+                        }
+
+                    if (state === 'running' && startAt) {
+                        // If we're in intermission mode, render the dual-timer layout
+                        if (mode === 'intermission') {
+                            // previousElapsedMs holds the paused show time before intermission (ms)
+                            const prevMs = parseInt(t.previousElapsedMs || 0, 10) || 0;
+                            pausedShowTime = Math.floor(prevMs / 1000);
+
+                            // render dual display: paused show time + intermission running timer
+                            const timerContainer = document.getElementById('timer-container');
+                            timerContainer.innerHTML = `
+                                <div class="dual-timer-container">
+                                    <div class="paused-timer" id="paused-timer">${formatTime(pausedShowTime)}</div>
+                                    <div class="intermission-timer" id="intermission-timer">00:00:00</div>
+                                </div>
+                            `;
+
+                            // compute intermission seconds from server timestamp
+                            const computeInterSecs = () => Math.floor((elapsedBefore + (Date.now() - startAt)) / 1000);
+                            // update immediately
+                            const interElNow = document.getElementById('intermission-timer');
+                            if (interElNow) interElNow.textContent = formatTime(computeInterSecs());
+
+                            // start ticking intermission timer
+                            timerInterval = setInterval(() => {
+                                const interEl = document.getElementById('intermission-timer');
+                                if (interEl) {
+                                    interEl.textContent = formatTime(computeInterSecs());
+                                }
+                            }, 1000);
+                        } else {
+                            // Normal show running
+                            // compute seconds using server timestamp reference
+                            const computeSecs = () => Math.floor((elapsedBefore + (Date.now() - startAt)) / 1000);
+                            seconds = computeSecs();
+                            // update immediately
+                            const timerDisplay = document.getElementById('timer');
+                            if (timerDisplay) timerDisplay.textContent = formatTime(seconds);
+                            // then start local ticking for display
+                            timerInterval = setInterval(() => {
+                                seconds = computeSecs();
+                                const tEl = document.getElementById('timer');
+                                if (tEl) tEl.textContent = formatTime(seconds);
+                            }, 1000);
+                        }
+                    } else {
+                        // paused or stopped
+                        seconds = Math.floor(elapsedBefore / 1000);
+                        const timerContainer = document.getElementById('timer-container');
+                        if (!isIntermission) {
+                            timerContainer.innerHTML = '<div class="timer" id="timer">' + formatTime(seconds) + '</div>';
+                        } else {
+                            // show dual timer if intermission mode
+                            const pausedShowTime = seconds;
+                            const interSec = startAt ? Math.floor((Date.now() - startAt) / 1000) : 0;
+                            timerContainer.innerHTML = `\n                                <div class="dual-timer-container">\n                                    <div class="paused-timer" id="paused-timer">${formatTime(pausedShowTime)}</div>\n                                    <div class="intermission-timer" id="intermission-timer">${formatTime(interSec)}</div>\n                                </div>\n                            `;
+                            // if intermission running (startAt present and state running) start incrementing intermission
+                            if (state === 'running' && startAt) {
+                                // tick intermission part
+                                timerInterval = setInterval(() => {
+                                    const interEl = document.getElementById('intermission-timer');
+                                    if (interEl) {
+                                        const interNow = Math.floor((Date.now() - startAt) / 1000);
+                                        interEl.textContent = formatTime(interNow);
+                                    }
+                                }, 1000);
+                            }
+                        }
+                    }
+                });
+
+                // Listen for alerts (admin sends alerts here)
+                const alertsRef = firebase.database().ref('alerts/current');
+                // Keep track of the last alert timestamp we've shown to avoid re-displaying on reload
+                let lastSeenAlertAt = parseInt(localStorage.getItem('lastSeenAlertAt') || '0', 10) || 0;
+                alertsRef.on('value', (snap) => {
+                    const a = snap.val();
+                    if (!a || !a.message) return;
+                    const createdAt = parseInt(a.createdAt || 0, 10) || 0;
+                    const now = Date.now();
+
+                    // Only display if the alert is new and recent (within 30s)
+                    const isRecent = createdAt && (now - createdAt) <= 30000;
+                    const isNewerThanSeen = createdAt && (createdAt > lastSeenAlertAt);
+
+                    if (createdAt) {
+                        if (isNewerThanSeen && isRecent) {
+                            showAdminAlert(a.message);
+                            lastSeenAlertAt = createdAt;
+                            localStorage.setItem('lastSeenAlertAt', String(lastSeenAlertAt));
+                        } else {
+                            // Ignore old or already-seen alerts to avoid re-showing on reload
+                            console.info('Ignored alert (old or already seen)', { createdAt, lastSeenAlertAt, now });
+                        }
+                    } else {
+                        // Fallback: if no timestamp present, show once and mark now as seen
+                        showAdminAlert(a.message);
+                        lastSeenAlertAt = now;
+                        localStorage.setItem('lastSeenAlertAt', String(lastSeenAlertAt));
+                    }
+                });
+
+                // Listen for shared scene context updates (notes/cast)
+                const sceneContextRef = firebase.database().ref('sceneContext');
+                sceneContextRef.on('value', (snap) => {
+                    const data = snap.val();
+                    if (!data) return;
+                    // Merge remote scene context into local store and re-render
+                    sceneContextData = Object.assign({}, sceneContextData, data);
+                    updateSceneDisplay();
+                });
             } else {
                 console.warn('Firebase config not set. Real-time sync disabled.');
             }
@@ -1446,6 +1683,48 @@
                 }, 50);
             });
         })();
+
+        // Alert overlay helper
+        function showAdminAlert(message) {
+            // Remove existing if present
+            const existing = document.getElementById('admin-alert-overlay');
+            if (existing) existing.remove();
+
+            const overlay = document.createElement('div');
+            overlay.id = 'admin-alert-overlay';
+            overlay.style.position = 'fixed';
+            overlay.style.left = '0';
+            overlay.style.top = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.display = 'flex';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+            overlay.style.zIndex = '2000';
+            overlay.style.background = 'rgba(0,0,0,0.4)';
+
+            const box = document.createElement('div');
+            box.style.background = '#ff0000';
+            box.style.color = '#fff';
+            box.style.padding = '28px';
+            box.style.border = '6px solid #fff';
+            box.style.borderRadius = '8px';
+            box.style.fontSize = '1.8rem';
+            box.style.fontWeight = '700';
+            box.style.letterSpacing = '2px';
+            box.style.maxWidth = '90%';
+            box.style.textAlign = 'center';
+            box.textContent = message;
+
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+
+            // Auto hide after 30s
+            setTimeout(() => {
+                const el = document.getElementById('admin-alert-overlay');
+                if (el) el.remove();
+            }, 30000);
+        }
     </script>
 </body>
 </html>
